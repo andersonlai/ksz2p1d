@@ -159,6 +159,7 @@ class desi_obj:
         self.dec_bin = dec_bin
         self.photo_z_err_bin = photo_z_err_bin
         self.photo_z_median_bin = np.array(photo_z_median_bin)
+        self.zbins_mean = (zbins_low+zbins_up)/2
 
         print('catalog binning completed.')
 
@@ -235,6 +236,7 @@ class desi_obj:
         
         for i in range(self.nbins):
             shape = self.unconvolved_normalized_profiles[i]
+            # std = 0.027*(1+self.zbins_mean[i])
             std = self.photo_z_err_median_bin[i]
             gaus = gaussian((self.zgrid[0]+self.zgrid[-1])/2, std, self.zgrid)
             profile = np.convolve(gaus, shape, 'same')
@@ -345,9 +347,9 @@ class desi_obj:
         print('you can select them by calling this function again with a boolean mask as argument (0 means not using), otherwise all of them will be used')
 
         if mask is None:
-            self.applied_imaging_properties = self.full_imaging_properties
+            self.applied_imaging_properties = self.full_imaging_properties[2:]
         else:
-            self.applied_imaging_properties = list(np.array(self.full_imaging_properties)[mask])
+            self.applied_imaging_properties = list(np.array(self.full_imaging_properties)[mask][2:])
 
         print('Currently applied imaging properties: ', self.applied_imaging_properties)
 
@@ -430,6 +432,8 @@ class desi_obj:
             odmaps_calibrated[i, self.mask] = self.dmaps[i, self.mask]/(dmap_prediced_from_radom)*normalization -1.
 
         self.odmaps_calibrated = odmaps_calibrated
+        self.coeffs = np.array(coeffs)
+        self.intercepts = np.array(intercepts)
 
     def output(self, type = 'dmap', dir = None):
         print('output type: ', type)
@@ -491,7 +495,7 @@ class desi_obj:
                 hp.write_map(fname, self.odmaps_calibrated[i])
 
             fname = dir_full + 'desilrg_beamprofile.fits'
-            np.savez(fname, zgrid = self.zgrid, zbins = self.zbins, conv_normed_profiles = self.convolved_normalized_profiles, unconv_normed_profiles = self.unconvolved_normalized_profiles, profile_edges = self.profile_edges, photo_z_err_bin = self.photo_z_err_median_bin)
+            np.savez(fname, zgrid = self.zgrid, zbins = self.zbins, conv_normed_profiles = self.convolved_normalized_profiles, unconv_normed_profiles = self.unconvolved_normalized_profiles, profile_edges = self.profile_edges, photo_z_err_bin = self.photo_z_err_median_bin, intercepts = self.intercepts, coeffs = self.coeffs)
 
             fname = dir_full + 'desilrg_shotnoises.fits'
             np.save(fname, self.shotnoises)
